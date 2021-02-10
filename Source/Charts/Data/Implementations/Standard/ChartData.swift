@@ -22,6 +22,8 @@ open class ChartData: NSObject, ExpressibleByArrayLiteral
     var leftAxisMin = Double.greatestFiniteMagnitude
     var rightAxisMax = -Double.greatestFiniteMagnitude
     var rightAxisMin = Double.greatestFiniteMagnitude
+    
+    private let queue = DispatchQueue(label: "element_iterating")
 
     // MARK: - Accessibility
     
@@ -72,7 +74,9 @@ open class ChartData: NSObject, ExpressibleByArrayLiteral
     
     @objc open func calcMinMaxY(fromX: Double, toX: Double)
     {
-        forEach { $0.calcMinMaxY(fromX: fromX, toX: toX) }
+        queue.sync {
+            forEach { $0.calcMinMaxY(fromX: fromX, toX: toX) }
+        }
         
         // apply the new data
         calcMinMax()
@@ -89,8 +93,10 @@ open class ChartData: NSObject, ExpressibleByArrayLiteral
         yMin = .greatestFiniteMagnitude
         xMax = -.greatestFiniteMagnitude
         xMin = .greatestFiniteMagnitude
-
-        forEach { calcMinMax(dataSet: $0) }
+        
+        queue.sync {
+            forEach { calcMinMax(dataSet: $0) }
+        }
 
         // left axis
         let firstLeft = getFirstLeft(dataSets: dataSets)
@@ -369,25 +375,33 @@ open class ChartData: NSObject, ExpressibleByArrayLiteral
     /// Sets a custom ValueFormatter for all DataSets this data object contains.
     @objc open func setValueFormatter(_ formatter: ValueFormatter)
     {
-        forEach { $0.valueFormatter = formatter }
+        queue.sync {
+            forEach { $0.valueFormatter = formatter }
+        }
     }
     
     /// Sets the color of the value-text (color in which the value-labels are drawn) for all DataSets this data object contains.
     @objc open func setValueTextColor(_ color: NSUIColor)
     {
-        forEach { $0.valueTextColor = color }
+        queue.sync {
+            forEach { $0.valueTextColor = color }
+        }
     }
     
     /// Sets the font for all value-labels for all DataSets this data object contains.
     @objc open func setValueFont(_ font: NSUIFont)
     {
-        forEach { $0.valueFont = font }
+        queue.sync {
+            forEach { $0.valueFont = font }
+        }
     }
 
     /// Enables / disables drawing values (value-text) for all DataSets this data object contains.
     @objc open func setDrawValues(_ enabled: Bool)
     {
-        forEach { $0.drawValuesEnabled = enabled }
+        queue.sync {
+            forEach { $0.drawValuesEnabled = enabled }
+        }
     }
     
     /// Enables / disables highlighting values for all DataSets this data object contains.
@@ -395,7 +409,11 @@ open class ChartData: NSObject, ExpressibleByArrayLiteral
     @objc open var isHighlightEnabled: Bool
     {
         get { return allSatisfy { $0.isHighlightEnabled } }
-        set { forEach { $0.highlightEnabled = newValue } }
+        set {
+            queue.sync {
+                forEach { $0.highlightEnabled = newValue }
+            }
+        }
     }
 
     /// Clears this data object from all DataSets and removes all Entries.
