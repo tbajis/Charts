@@ -22,6 +22,8 @@ open class ChartData: NSObject
     internal var _rightAxisMax: Double = -Double.greatestFiniteMagnitude
     internal var _rightAxisMin: Double = Double.greatestFiniteMagnitude
     
+    private let queue = DispatchQueue(label: "charts.sequence")
+    
     internal var _dataSets = [IChartDataSet]()
     
     public override init()
@@ -59,7 +61,9 @@ open class ChartData: NSObject
     
     @objc open func calcMinMaxY(fromX: Double, toX: Double)
     {
-        _dataSets.forEach { $0.calcMinMaxY(fromX: fromX, toX: toX) }
+        queue.sync {
+            _dataSets.forEach { $0.calcMinMaxY(fromX: fromX, toX: toX) }
+        }
         // apply the new data
         calcMinMax()
     }
@@ -72,8 +76,10 @@ open class ChartData: NSObject
         _xMax = -Double.greatestFiniteMagnitude
         _xMin = Double.greatestFiniteMagnitude
         
-        _dataSets.forEach { calcMinMax(dataSet: $0) }
-        
+        queue.sync {
+            _dataSets.forEach { calcMinMax(dataSet: $0) }
+        }
+                
         _leftAxisMax = -Double.greatestFiniteMagnitude
         _leftAxisMin = Double.greatestFiniteMagnitude
         _rightAxisMax = -Double.greatestFiniteMagnitude
@@ -87,20 +93,23 @@ open class ChartData: NSObject
             _leftAxisMax = firstLeft!.yMax
             _leftAxisMin = firstLeft!.yMin
             
-            for dataSet in _dataSets
-            {
-                if dataSet.axisDependency == .left
+            queue.sync {
+                for dataSet in _dataSets
                 {
-                    if dataSet.yMin < _leftAxisMin
+                    if dataSet.axisDependency == .left
                     {
-                        _leftAxisMin = dataSet.yMin
-                    }
-                    
-                    if dataSet.yMax > _leftAxisMax
-                    {
-                        _leftAxisMax = dataSet.yMax
+                        if dataSet.yMin < _leftAxisMin
+                        {
+                            _leftAxisMin = dataSet.yMin
+                        }
+                        
+                        if dataSet.yMax > _leftAxisMax
+                        {
+                            _leftAxisMax = dataSet.yMax
+                        }
                     }
                 }
+                
             }
         }
         
@@ -112,18 +121,20 @@ open class ChartData: NSObject
             _rightAxisMax = firstRight!.yMax
             _rightAxisMin = firstRight!.yMin
             
-            for dataSet in _dataSets
-            {
-                if dataSet.axisDependency == .right
+            queue.sync {
+                for dataSet in _dataSets
                 {
-                    if dataSet.yMin < _rightAxisMin
+                    if dataSet.axisDependency == .right
                     {
-                        _rightAxisMin = dataSet.yMin
-                    }
-                    
-                    if dataSet.yMax > _rightAxisMax
-                    {
-                        _rightAxisMax = dataSet.yMax
+                        if dataSet.yMin < _rightAxisMin
+                        {
+                            _rightAxisMin = dataSet.yMin
+                        }
+                        
+                        if dataSet.yMax > _rightAxisMax
+                        {
+                            _rightAxisMax = dataSet.yMax
+                        }
                     }
                 }
             }
@@ -330,7 +341,9 @@ open class ChartData: NSObject
         }
         set
         {
-            _dataSets = newValue
+            queue.sync {
+                _dataSets = newValue
+            }
             notifyDataChanged()
         }
     }
@@ -410,7 +423,9 @@ open class ChartData: NSObject
     {
         calcMinMax(dataSet: dataSet)
         
-        _dataSets.append(dataSet)
+        queue.sync {
+            _dataSets.append(dataSet)
+        }
     }
     
     /// Removes the given DataSet from this data object.
@@ -434,7 +449,9 @@ open class ChartData: NSObject
             return false
         }
         
-        _dataSets.remove(at: index)
+        queue.sync {
+            _dataSets.remove(at: index)
+        }
         
         calcMinMax()
         
@@ -583,7 +600,9 @@ open class ChartData: NSObject
     /// The total entry count across all DataSet objects this data object contains.
     @objc open var entryCount: Int
     {
-        return _dataSets.reduce(0) { $0 + $1.entryCount }
+        queue.sync {
+            return _dataSets.reduce(0) { $0 + $1.entryCount }
+        }
     }
 
     /// The DataSet object with the maximum number of entries or null if there are no DataSets.
